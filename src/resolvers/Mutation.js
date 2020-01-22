@@ -75,8 +75,9 @@ const Mutation = {
         return user
     },
     // CREATE POST
-    createPost(parent, args, {db}, info) {
+    createPost(parent, args, {db, pubsub}, info) {
         const userExists = db.users.some((user) => user.id === args.data.author)
+        const postIsPublished = args.data.published === true
 
         if (!userExists) {
             throw new Error('User does not exist')
@@ -88,6 +89,10 @@ const Mutation = {
         }
 
         db.posts.push(post)
+
+        if(postIsPublished){
+            pubsub.publish('post', {post})  
+        }
 
         return post
     },
@@ -132,7 +137,7 @@ const Mutation = {
         return post
     },
     // CREATE COMMENT
-    createComment(parent, args, {db}, info) {
+    createComment(parent, args, {db, pubsub}, info) {
         // if post && user exist - Create the comment
 
         const userExists = db.users.some((user) => user.id === args.data.author)
@@ -148,6 +153,7 @@ const Mutation = {
         }
 
         db.comments.push(comment)
+        pubsub.publish(`comment ${args.data.post}`, {comment} )
         return comment
     },
     // DELETE COMMENT
